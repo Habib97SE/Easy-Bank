@@ -8,36 +8,32 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 
 
 public class GUI
 {
     private final int WIDTH = 800;
     private final int HEIGHT = 600;
-    private String personlNumber;
+    private String personlNumber = "";
+    private boolean loggedIn = false;
     private BankLogic bankLogic;
     private JFrame mainFrame;
     private JPanel headerPanel;
     private JPanel sidebarPanel;
     private JPanel contentPanel;
     private JPanel footerPanel;
+    private JMenuBar menuBar;
 
     public GUI (String programName)
     {
-        bankLogic = new BankLogic();
+        this.bankLogic = new BankLogic();
         mainFrame = new JFrame(programName);
         mainFrame.setLayout(new BorderLayout());
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        URL imageUrl = null;
-        try {
-            imageUrl = GUI.class.getResource("/habhez0_files/icon.jpg");
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
-        }
-        ImageIcon imageIcon = new ImageIcon(imageUrl);
-        mainFrame.setIconImage(imageIcon.getImage());
 
         mainFrame.setJMenuBar(createMenuBar());
         mainFrame.setVisible(true);
@@ -72,22 +68,10 @@ public class GUI
 
         mainFrame.setBackground(Color.white);
 
-        JScrollBar scrollBar = new JScrollBar(JScrollBar.VERTICAL, 30, 40, 0, 300);
-        scrollBar.setPreferredSize(new Dimension(30, 0));
-
 
         mainFrame.pack();
         mainFrame.setLocationRelativeTo(null);
 
-        mainFrame.addComponentListener(new ComponentAdapter()
-        {
-            @Override
-            public void componentResized (ComponentEvent e)
-            {
-                super.componentResized(e);
-                //resizeFontSize();
-            }
-        });
     }
 
     public void cleanPanels ()
@@ -97,6 +81,18 @@ public class GUI
         sidebarPanel.removeAll();
         contentPanel.removeAll();
         footerPanel.removeAll();
+
+        // repaint panels
+        headerPanel.revalidate();
+        sidebarPanel.revalidate();
+        contentPanel.revalidate();
+        footerPanel.revalidate();
+
+        headerPanel.repaint();
+        sidebarPanel.repaint();
+        contentPanel.repaint();
+        footerPanel.repaint();
+
 
     }
 
@@ -148,11 +144,7 @@ public class GUI
                 handleNewCustomer();
             }
         });
-        JMenuItem editCustomer = new JMenuItem("Ändra kund");
-        JMenuItem deleteCustomer = new JMenuItem("Ta bort kund");
-        JMenuItem showCustomer = new JMenuItem("Visa kund");
-
-        editCustomer.addActionListener(new ActionListener()
+        JMenuItem editCustomer = createMenuItem("Ändra kund", new ActionListener()
         {
             @Override
             public void actionPerformed (ActionEvent e)
@@ -160,14 +152,166 @@ public class GUI
                 handleEditCustomer();
             }
         });
+        JMenuItem deleteCustomer = createMenuItem("Ta bort kund", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleDeleteCustomer();
+            }
+        });
+        JMenuItem showCustomer = createMenuItem("Visa kund", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleShowCustomer();
+            }
+        });
+        JMenuItem setCustomer = null;
+        if (loggedIn)
+        {
+            setCustomer = createMenuItem("Nollställ kund", new ActionListener()
+            {
+                @Override
+                public void actionPerformed (ActionEvent e)
+                {
+                    handleRemoveCustomer();
+                }
+            });
+        } else {
+            setCustomer = createMenuItem("Sätt kund", new ActionListener()
+            {
+                @Override
+                public void actionPerformed (ActionEvent e)
+                {
+                    handleSetCustomer();
+                }
+            });
+        }
 
-
-        menu.add(newCustomer);
+        menu.add(setCustomer);
         menu.add(new JSeparator());
+        menu.add(newCustomer);
         menu.add(editCustomer);
         menu.add(deleteCustomer);
         menu.add(showCustomer);
         return menu;
+    }
+
+    private void handleRemoveCustomer ()
+    {
+
+        if (loggedIn)
+        {
+            // re-render the menu bar
+            personlNumber = "";
+            loggedIn = false;
+            cleanPanels();
+            createHeader("Välkommen", "This is a test");
+            createSidebar();
+            mainFrame.setJMenuBar(createMenuBar());
+        }
+    }
+
+    private void handleSetCustomer ()
+    {
+        if (!loggedIn)
+        {
+            JLabel personalNumberLabel = new JLabel("Personnummer: ");
+            JTextField personalNumberField = new JTextField(20);
+
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.add(personalNumberLabel, BorderLayout.WEST);
+            panel.add(personalNumberField, BorderLayout.CENTER);
+
+            JButton setCustomer = new JButton("Sätt kund");
+            setCustomer.addActionListener(new ActionListener()
+            {
+                @Override
+                public void actionPerformed (ActionEvent e)
+                {
+                    String personalNumber = personalNumberField.getText();
+                    if (bankLogic.customerExists(personalNumber))
+                    {
+                        setPersonlNumber(personalNumber);
+                        loggedIn = true;
+                        handleShowCustomer();
+                        mainFrame.setJMenuBar(createMenuBar());
+                    }
+                    else
+                    {
+                        JOptionPane.showMessageDialog(mainFrame, "Kunden finns inte");
+                    }
+                }
+            });
+
+            cleanPanels();
+            createHeader("Sätt kund", "Du kan sätta kund här");
+            createSidebar();
+            contentPanel.add(panel, BorderLayout.NORTH);
+            contentPanel.add(setCustomer, BorderLayout.SOUTH);
+
+            mainFrame.pack();
+
+        }
+    }
+
+    private void handleShowCustomer ()
+    {
+        cleanPanels();
+        createHeader("Visa kund", "Du kan visa kundens information här");
+        createSidebar();
+        JPanel formPanel = new JPanel(new BorderLayout());
+        JLabel personalNumberLabel = new JLabel("Personnummer: " + getPersonlNumber());
+        JLabel firstNameLabel = new JLabel("Förnamn: " + bankLogic.getFullName(personlNumber).split(" ")[0]);
+        JLabel lastNameLabel = new JLabel("Efternamn: " + bankLogic.getFullName(personlNumber).split(" ")[1]);
+
+        personalNumberLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
+        firstNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
+        lastNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
+
+        GridBagLayout gridBagLayout = new GridBagLayout();
+        formPanel.setLayout(gridBagLayout);
+        GridBagConstraints gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        formPanel.add(personalNumberLabel, gridBagConstraints);
+        gridBagConstraints.gridy = 1;
+        formPanel.add(firstNameLabel, gridBagConstraints);
+        gridBagConstraints.gridy = 2;
+        formPanel.add(lastNameLabel, gridBagConstraints);
+
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        contentPanel.setBackground(Color.white);
+
+        mainFrame.pack();
+
+
+    }
+
+    private void handleDeleteCustomer ()
+    {
+        if (personlNumber.equals(""))
+        {
+            JOptionPane.showMessageDialog(mainFrame, "Du måste välja en kund först");
+            return;
+        }
+        int result = JOptionPane.showConfirmDialog(mainFrame, "Är du säker på att du vill ta bort kunden?");
+        if (result == JOptionPane.YES_OPTION)
+        {
+            bankLogic.deleteCustomer(personlNumber);
+            JOptionPane.showMessageDialog(mainFrame, "Kunden har tagits bort");
+            cleanPanels();
+            createHeader("Välkommen", "This is a test");
+            createSidebar();
+            loggedIn = false;
+            setPersonlNumber("");
+
+            mainFrame.pack();
+        }
+
     }
 
     private void handleEditCustomer ()
@@ -228,8 +372,7 @@ public class GUI
                 {
                     JOptionPane.showMessageDialog(mainFrame, "Kundens namn har ändrats", "Ändra kund", JOptionPane.INFORMATION_MESSAGE);
                     handleCancel();
-                }
-                else
+                } else
                 {
                     JOptionPane.showMessageDialog(mainFrame, "Kundens namn kunde inte ändras", "Ändra kund", JOptionPane.ERROR_MESSAGE);
                 }
@@ -314,7 +457,7 @@ public class GUI
 
     private boolean isCustomerSet ()
     {
-        return personlNumber != null;
+        return personlNumber != null || personlNumber.equals("");
     }
 
     private void createSidebar ()
@@ -393,32 +536,47 @@ public class GUI
             @Override
             public void actionPerformed (ActionEvent e)
             {
-                String personalNumber = personalNumberTextfield.getText();
+                String personalNumberStr = personalNumberTextfield.getText();
                 String firstName = firstNameTextfield.getText();
                 String lastName = lastNameTextfield.getText();
-                if (personalNumber.isEmpty() || firstName.isEmpty() || lastName.isEmpty())
+
+                if (!bankLogic.isPersonalNumberValid(personalNumberStr))
+                {
+                    JOptionPane.showMessageDialog(mainFrame, "Personnumret är inte giltigt");
+                    return;
+                }
+
+                if (personalNumberStr.isEmpty() || firstName.isEmpty() || lastName.isEmpty())
                 {
                     JOptionPane.showMessageDialog(mainFrame, "Du måste fylla i alla fält");
                     return;
                 }
                 try
                 {
-                    if (bankLogic.customerExists(personalNumber))
+                    if (bankLogic.customerExists(personalNumberStr))
                     {
                         JOptionPane.showMessageDialog(mainFrame, "Kunden finns redan");
                         return;
                     } else
                     {
-                        bankLogic.createCustomer(personalNumber, firstName, lastName);
-                        JOptionPane.showMessageDialog(mainFrame, "Kunden skapades");
-                        cleanPanels();
-                        updateHeader("Välkommen till banken", "Välj en funktion i menyn till vänster");
-                        createSidebar();
-                        // remove all elements from contentPanel
-                        contentPanel.removeAll();
-                        contentPanel.revalidate();
-                        contentPanel.repaint();
-                        setPersonlNumber(personalNumber);
+                        boolean result = bankLogic.createCustomer(firstName, lastName, personalNumberStr);
+
+                        if (result)
+                        {
+                            loggedIn = true;
+                            setPersonlNumber(personalNumberStr);
+                            JOptionPane.showMessageDialog(mainFrame, "Kunden skapades");
+                            cleanPanels();
+                            createHeader("Välkommen", "Välkommen till banken");
+                            createSidebar();
+                            mainFrame.setJMenuBar(createMenuBar());
+                            mainFrame.revalidate();
+                            mainFrame.repaint();
+                            mainFrame.pack();
+                        } else
+                        {
+                            JOptionPane.showMessageDialog(mainFrame, "Kunden kunde inte skapas");
+                        }
 
                     }
                 } catch (Exception ex)
@@ -482,15 +640,99 @@ public class GUI
     public JMenu createAccountMenu ()
     {
         JMenu menu = new JMenu("Account");
-        JMenuItem newSavingAccount = new JMenuItem("Nytt sparkonto");
-        JMenuItem newCreditAccount = new JMenuItem("Nytt kreditkonto");
-        JMenuItem showAccount = new JMenuItem("Visa konto");
+        JMenuItem newSavingAccount = createMenuItem("Nytt sparkonto", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleNewAccount("saving");
+            }
+        });
+        JMenuItem newCreditAccount = createMenuItem("Nytt kreditkonto", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleNewAccount("credit");
+            }
+        });
+        JMenuItem showAccount = createMenuItem("Visa konto", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleShowAccount();
+            }
+        });
         JMenuItem closeAccount = new JMenuItem("Stäng konto");
         menu.add(newSavingAccount);
         menu.add(newCreditAccount);
         menu.add(showAccount);
         menu.add(closeAccount);
         return menu;
+    }
+
+    private void handleShowAccount ()
+    {
+        if (!loggedIn)
+        {
+            JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+            return;
+        }
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BorderLayout());
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(getPersonlNumber());
+        if (accounts.size() == 0)
+        {
+            formPanel.add(new JLabel("Det finns inga konton"));
+            return;
+        }
+        for (String account : accounts)
+        {
+            formPanel.add(new JLabel(account), BorderLayout.CENTER);
+        }
+        contentPanel.removeAll();
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+
+        mainFrame.pack();
+    }
+
+    private void handleNewAccount (String accountType)
+    {
+        accountType = accountType.toLowerCase(Locale.ROOT);
+        if (accountType.equals("savings") || accountType.equals("saving"))
+        {
+            if (!loggedIn)
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+                return;
+            }
+            int accountNumber = bankLogic.createSavingsAccount(getPersonlNumber());
+            if (accountNumber > 0)
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Sparkonto skapades \nKontonummer: " + accountNumber);
+            } else
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Sparkonto kunde inte skapas");
+            }
+        } else if (accountType.equals("credit") || accountType.equals("credits"))
+        {
+            if (!loggedIn)
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+                return;
+            }
+            int accountNumber = bankLogic.createCreditAccount(getPersonlNumber());
+            if (accountNumber > 0)
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Kreditkonto skapades \nKontonummer: " + accountNumber);
+            } else
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Kreditkonto kunde inte skapas");
+            }
+        }
     }
 
 
@@ -518,6 +760,7 @@ public class GUI
                 footerPanel.add(new JLabel(strDate));
                 footerPanel.revalidate();
                 footerPanel.repaint();
+                footerPanel.setBackground(new Color(0, 153, 0));
             }
         });
         timer.start();
@@ -526,71 +769,6 @@ public class GUI
         mainFrame.pack();
     }
 
-    private void resizeFontSize ()
-    {
-        float windowWidth = mainFrame.getWidth();
-        float windowHeight = mainFrame.getHeight();
-        float size = Math.min(windowWidth, windowHeight) / 10f;
-
-        Component[] components = mainFrame.getContentPane().getComponents();
-
-        // Loop through all components
-        for (Component component : components)
-        {
-            if (component instanceof JPanel)
-            {
-                // Iterate through components within the panel
-                Component[] innerComponents = ((JPanel) component).getComponents();
-                for (Component innerComponent : innerComponents)
-                {
-                    // Resize the font size of all labels
-                    if (innerComponent instanceof JLabel)
-                    {
-                        System.out.println("Label");
-                        JLabel label = (JLabel) innerComponent;
-                        Font font = label.getFont();
-                        label.setFont(font.deriveFont(size + 5.0f));
-                    }
-                    // Resize the font size of all buttons
-                    else if (innerComponent instanceof JButton)
-                    {
-                        JButton button = (JButton) innerComponent;
-                        Font font = button.getFont();
-
-                    }
-                    // Resize the font size of all text fields
-                    else if (innerComponent instanceof JTextField)
-                    {
-                        JTextField textField = (JTextField) innerComponent;
-                        Font font = textField.getFont();
-                        textField.setFont(font.deriveFont(size + 5.0f));
-                    }
-                }
-            } else
-            {
-                // Resize the font size of the component itself
-                if (component instanceof JLabel)
-                {
-                    JLabel label = (JLabel) component;
-                    Font font = label.getFont();
-                    size = font.getSize2D() + 5.0f;
-                    label.setFont(font.deriveFont(size));
-                } else if (component instanceof JButton)
-                {
-                    JButton button = (JButton) component;
-                    Font font = button.getFont();
-                    size = font.getSize2D() + 5.0f;
-                    button.setFont(font.deriveFont(size));
-                } else if (component instanceof JTextField)
-                {
-                    JTextField textField = (JTextField) component;
-                    Font font = textField.getFont();
-                    size = font.getSize2D() + 5.0f;
-                    textField.setFont(font.deriveFont(size));
-                }
-            }
-        }
-    }
 
     /**
      * Create the right side of the header which shows the customer data (name).
@@ -606,7 +784,7 @@ public class GUI
         customerData.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JLabel customer = new JLabel();
-        if (isCustomerSet())
+        if (loggedIn)
         {
             customer.setText("Kund: " + bankLogic.getFullName(getPersonlNumber()));
         } else

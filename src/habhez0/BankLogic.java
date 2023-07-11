@@ -7,6 +7,8 @@
  */
 package habhez0;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.*;
 
 public class BankLogic
@@ -79,8 +81,15 @@ public class BankLogic
      */
     public boolean createCustomer (String name, String surname, String pNo)
     {
+
         if (!customerExists(pNo))
         {
+            if (name.equals("") || surname.equals(""))
+                return false;
+            if (!isPersonalNumberValid(pNo))
+                return false;
+            name = name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+            surname = surname.substring(0, 1).toUpperCase() + surname.substring(1).toLowerCase();
             Customer customer1 = new Customer(pNo, name, surname);
             allCustomers.add(customer1);
             return true;
@@ -140,6 +149,7 @@ public class BankLogic
 
     /**
      * Create a new savings account for a customer with given pNo
+     *
      * @param pNo : personal number of the customer who wants to create a new savings account
      * @return: account number of the new savings account or -1 if the customer does not exist
      */
@@ -157,6 +167,7 @@ public class BankLogic
 
     /**
      * Create a new credit account for a customer
+     *
      * @param pNo: personal number of the customer who wants to create a new credit account
      * @return: account number of the new credit account or -1 if the customer does not exist
      */
@@ -274,12 +285,12 @@ public class BankLogic
         return null;
     }
 
-    boolean checkPersonalNumber (String pNo)
+    public boolean isPersonalNumberValid (String pNo)
     {
-        // check if the personl number is 10 or 12 digits
+        // check if the personal number is 10 or 12 digits long, if not return false
         if (pNo.length() != 10 && pNo.length() != 12)
             return false;
-        // check if the personal number contains only digits
+        // check if the personal number contains only digits, if not return false
         for (int i = 0; i < pNo.length(); i++)
         {
             if (!Character.isDigit(pNo.charAt(i)))
@@ -288,7 +299,7 @@ public class BankLogic
         return true;
     }
 
-    ArrayList<String> getCustomerAccounts (String pNo)
+    public ArrayList<String> getCustomerAccounts (String pNo)
     {
         if (!customerExists(pNo))
             return null;
@@ -321,5 +332,39 @@ public class BankLogic
             }
         }
         return customerName;
+    }
+
+    public boolean isCustomerOverEighteen (String personalNumber)
+    {
+        if (!isPersonalNumberValid(personalNumber))
+            return false;
+        personalNumber = addCenturyToPersonalNumber(personalNumber);
+        if (!personalNumberIsTenDigits(personalNumber))
+            return false;
+        int year = Integer.parseInt(personalNumber.substring(0, 4));
+        int month = Integer.parseInt(personalNumber.substring(4, 6));
+        int day = Integer.parseInt(personalNumber.substring(6, 8));
+        LocalDate birthDate = LocalDate.of(year, month, day);
+        LocalDate today = LocalDate.now();
+        Period p = Period.between(birthDate, today);
+        return p.getYears() >= 18;
+    }
+
+    private String addCenturyToPersonalNumber (String personalNumber)
+    {
+
+        if (personalNumber.startsWith("0"))
+        {
+            personalNumber = "20" + personalNumber;
+        } else
+        {
+            personalNumber = "19" + personalNumber;
+        }
+        return personalNumber;
+    }
+
+    private boolean personalNumberIsTenDigits (String personalNumber)
+    {
+        return personalNumber.length() == 10;
     }
 }
