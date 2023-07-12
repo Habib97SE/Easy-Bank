@@ -26,9 +26,11 @@ public class GUI
     private JPanel contentPanel;
     private JPanel footerPanel;
     private JMenuBar menuBar;
+    private String dateFormat;
 
-    public GUI (String programName)
+    public GUI (String programName, String dateFormat)
     {
+        this.dateFormat = dateFormat;
         this.bankLogic = new BankLogic();
         mainFrame = new JFrame(programName);
         mainFrame.setLayout(new BorderLayout());
@@ -179,7 +181,8 @@ public class GUI
                     handleRemoveCustomer();
                 }
             });
-        } else {
+        } else
+        {
             setCustomer = createMenuItem("Sätt kund", new ActionListener()
             {
                 @Override
@@ -238,8 +241,7 @@ public class GUI
                         loggedIn = true;
                         handleShowCustomer();
                         mainFrame.setJMenuBar(createMenuBar());
-                    }
-                    else
+                    } else
                     {
                         JOptionPane.showMessageDialog(mainFrame, "Kunden finns inte");
                     }
@@ -259,6 +261,9 @@ public class GUI
 
     private void handleShowCustomer ()
     {
+        if (!checkIfCustomerIsSet())
+            return;
+        System.out.printf("personal number: %s", getPersonlNumber());
         cleanPanels();
         createHeader("Visa kund", "Du kan visa kundens information här");
         createSidebar();
@@ -316,6 +321,8 @@ public class GUI
 
     private void handleEditCustomer ()
     {
+        if (!checkIfCustomerIsSet())
+            return;
         cleanPanels();
         createHeader("Ändra kund", "Du kan ändra kundens namn här");
         createSidebar();
@@ -476,6 +483,42 @@ public class GUI
         JButton showTransactionsButton = new JButton("Visa transaktioner");
         JButton transferButton = new JButton("Överföring");
 
+        withdrawButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleWithdraw();
+            }
+        });
+
+        depositButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleDeposit();
+            }
+        });
+
+        showBalanceButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleShowBalance();
+            }
+        });
+
+        showTransactionsButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleShowTransactions();
+            }
+        });
+
         // add all buttons to sidebar
         sidebarPanel.add(withdrawButton);
         sidebarPanel.add(depositButton);
@@ -494,6 +537,237 @@ public class GUI
         // add sidebar to mainframe
         mainFrame.add(sidebarPanel, BorderLayout.WEST);
         mainFrame.pack();
+    }
+
+    private void handleShowTransactions ()
+    {
+        if (checkIfCustomerIsSet())
+            return;
+        cleanPanels();
+        createHeader("Visa transaktioner", "Visa transaktioner för ett konto");
+        createSidebar();
+
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BorderLayout());
+        JLabel selectAccount = new JLabel("Välj konto:");
+        JComboBox accountList = new JComboBox();
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
+        for (String account : accounts)
+        {
+            accountList.addItem(account);
+        }
+
+        JButton submitButton = new JButton("Visa transaktioner");
+        submitButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                String accountNumber = (String) accountList.getSelectedItem();
+                ArrayList<String> transactions = bankLogic.getTransactions(getPersonlNumber(),
+                        Integer.parseInt(accountNumber));
+
+            }
+        });
+    }
+
+    private void handleShowBalance ()
+    {
+        if (checkIfCustomerIsSet())
+            return;
+        cleanPanels();
+        createHeader("Visa saldo", "Visa saldo för ett konto");
+        createSidebar();
+
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new GridLayout(2, 1));
+        JPanel accountNumberPanel = new JPanel();
+        JPanel balancePanel = new JPanel();
+        JLabel accountNumberLabel = new JLabel("Kontonummer:");
+        JLabel balanceLabel = new JLabel("Saldo:");
+        JTextField accountNumberTextfield = new JTextField();
+        JTextField balanceTextfield = new JTextField();
+
+
+
+        accountNumberTextfield.setEditable(false);
+        balanceTextfield.setEditable(false);
+        accountNumberPanel.add(accountNumberLabel);
+        accountNumberPanel.add(accountNumberTextfield);
+        balancePanel.add(balanceLabel);
+        balancePanel.add(balanceTextfield);
+        formPanel.add(accountNumberPanel);
+        formPanel.add(balancePanel);
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        mainFrame.pack();
+
+    }
+
+    public int selectAccountNumber ()
+    {
+        JPanel panel = new JPanel();
+        JLabel label = new JLabel("Välj ett konto från listan:");
+        JComboBox comboBox = new JComboBox();
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
+        for (String account : accounts)
+        {
+            comboBox.addItem(bankLogic.extractAccountNumber(account));
+        }
+        panel.add(label);
+        panel.add(comboBox);
+        String[] options = new String[]{"OK", "Avbryt"};
+        int option = JOptionPane.showOptionDialog(null, panel, "Välj konto",
+                JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
+                null, options, options[1]);
+        if (option == 0) // pressing OK button
+        {
+            return Integer.parseInt(comboBox.getSelectedItem().toString());
+        }
+        return -1;
+    }
+
+    private void handleDeposit ()
+    {
+        if (!checkIfCustomerIsSet())
+            return;
+
+        cleanPanels();
+        createHeader("Sätt in pengar", "Fyll i uppgifterna nedan");
+        createSidebar();
+
+        JPanel formPanel = new JPanel();
+        JLabel selectAccount = new JLabel("Välj ett konto från lista: ");
+        JComboBox accountList = new JComboBox();
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
+        for (String account : accounts)
+        {
+            accountList.addItem(bankLogic.extractAccountNumber(account));
+        }
+        formPanel.add(selectAccount);
+        formPanel.add(accountList);
+        JButton submitButton = new JButton("Välj konto");
+        formPanel.add(submitButton);
+        submitButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                int accountNumber = Integer.parseInt(accountList.getSelectedItem().toString());
+                contentPanel.removeAll();
+                formPanel.removeAll();
+                JLabel amountLabel = new JLabel("Belopp:");
+                JTextField amountTextfield = new JTextField(20);
+                formPanel.add(amountLabel);
+                formPanel.add(amountTextfield);
+                JButton submitButton = new JButton("Sätt in pengar");
+                formPanel.add(submitButton);
+                submitButton.addActionListener(new ActionListener()
+                {
+                    @Override
+                    public void actionPerformed (ActionEvent e)
+                    {
+                        try
+                        {
+                            int amount = Integer.parseInt(amountTextfield.getText());
+                            bankLogic.deposit(getPersonlNumber(), accountNumber, amount);
+                            JOptionPane.showMessageDialog(null, String.format("Du satte in %d på ditt konto %s",
+                                            amount, accountNumber), "Pengar insatta",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            handleCancel();
+                        } catch (Exception ex)
+                        {
+                            JOptionPane.showMessageDialog(null, "Felaktigt belopp");
+                            return;
+                        }
+                    }
+                });
+                contentPanel.add(formPanel);
+
+                mainFrame.pack();
+            }
+        });
+        contentPanel.add(formPanel);
+        mainFrame.pack();
+    }
+
+    private void handleWithdraw ()
+    {
+        if (!checkIfCustomerIsSet())
+            return;
+        cleanPanels();
+        createHeader("Ta ut pengar", "Fyll i uppgifterna nedan");
+        createSidebar();
+
+        JPanel formPanel = new JPanel(new BorderLayout());
+
+        JLabel selectAccount = new JLabel("Välj ett konto från lista: ");
+        JComboBox accountList = new JComboBox();
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
+        for (String account : accounts)
+        {
+            accountList.addItem(bankLogic.extractAccountNumber(account));
+        }
+
+        JPanel selectAccountPanel = new JPanel();
+        selectAccountPanel.add(selectAccount);
+        selectAccountPanel.add(accountList);
+
+        int accountNumber = Integer.parseInt(accountList.getSelectedItem().toString());
+
+        JLabel amountLabel = new JLabel("Belopp:");
+        JTextField amountTextfield = new JTextField(20);
+        JPanel amountPanel = new JPanel();
+        amountPanel.add(amountLabel);
+        amountPanel.add(amountTextfield);
+
+        JButton cancelButton = new JButton("Avbryt");
+        cancelButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleCancel();
+            }
+        });
+
+        JButton submitButton = new JButton("Ta ut");
+        submitButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                try
+                {
+                    boolean result = bankLogic.withdraw(getPersonlNumber(), accountNumber,
+                            Integer.parseInt(amountTextfield.getText()));
+                    if (result)
+                    {
+                        JOptionPane.showMessageDialog(mainFrame, "Uttaget lyckades!", "Uttag", JOptionPane.INFORMATION_MESSAGE);
+                        handleCancel();
+                    } else
+                    {
+                        JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex)
+                {
+                    JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(submitButton);
+
+        formPanel.add(selectAccountPanel, BorderLayout.NORTH);
+        formPanel.add(amountPanel, BorderLayout.CENTER);
+        formPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+
+        mainFrame.pack();
+
+
     }
 
     private void handleNewCustomer ()
@@ -536,7 +810,7 @@ public class GUI
             @Override
             public void actionPerformed (ActionEvent e)
             {
-                String personalNumberStr = personalNumberTextfield.getText();
+                String personalNumberStr = bankLogic.convertToTwelveDigits(personalNumberTextfield.getText());
                 String firstName = firstNameTextfield.getText();
                 String lastName = lastNameTextfield.getText();
 
@@ -592,12 +866,7 @@ public class GUI
             @Override
             public void actionPerformed (ActionEvent e)
             {
-                cleanPanels();
-                updateHeader("Välkommen till banken", "Välj en funktion i menyn till vänster");
-                createSidebar();
-                contentPanel.removeAll();
-                contentPanel.revalidate();
-                contentPanel.repaint();
+                handleCancel();
             }
         });
 
@@ -664,7 +933,14 @@ public class GUI
                 handleShowAccount();
             }
         });
-        JMenuItem closeAccount = new JMenuItem("Stäng konto");
+        JMenuItem closeAccount = createMenuItem("Stäng konto", new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                handleCloseAccount();
+            }
+        });
         menu.add(newSavingAccount);
         menu.add(newCreditAccount);
         menu.add(showAccount);
@@ -672,13 +948,63 @@ public class GUI
         return menu;
     }
 
-    private void handleShowAccount ()
+    private void handleCloseAccount ()
     {
-        if (!loggedIn)
+        if (checkIfCustomerIsSet())
+            return;
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BorderLayout());
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(getPersonlNumber());
+        if (accounts.size() == 0)
         {
-            JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+            formPanel.add(new JLabel("Det finns inga konton"));
             return;
         }
+        // create the combobox
+        JComboBox<String> accountCombobox = new JComboBox<String>();
+        for (String account : accounts)
+        {
+            accountCombobox.addItem(Integer.toString(bankLogic.extractAccountNumber(account)));
+        }
+        JLabel chooseAccount = new JLabel("Välj konto:");
+        formPanel.add(chooseAccount, BorderLayout.NORTH);
+        formPanel.add(accountCombobox, BorderLayout.CENTER);
+        JButton submitButton = new JButton("Stäng konto");
+        submitButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed (ActionEvent e)
+            {
+                String accountNumber = (String) accountCombobox.getSelectedItem();
+                String result = bankLogic.closeAccount(getPersonlNumber(), Integer.parseInt(accountNumber));
+                if (result != null)
+                {
+                    String text = String.format("Kontot stängdes. Här är sammanfattningen:\n%s", result);
+                    JLabel accountInfo = new JLabel();
+                    accountInfo.setText(text);
+                    formPanel.add(accountInfo, BorderLayout.SOUTH);
+                } else
+                {
+                    JLabel warning = new JLabel("Kontot kunde inte stängas");
+                    warning.setForeground(Color.RED);
+                    formPanel.add(warning, BorderLayout.SOUTH);
+                }
+            }
+        });
+
+        formPanel.add(submitButton, BorderLayout.SOUTH);
+        contentPanel.removeAll();
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+
+        mainFrame.pack();
+    }
+
+    private void handleShowAccount ()
+    {
+        if (!checkIfCustomerIsSet())
+            return;
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new BorderLayout());
         ArrayList<String> accounts = bankLogic.getCustomerAccounts(getPersonlNumber());
@@ -699,16 +1025,23 @@ public class GUI
         mainFrame.pack();
     }
 
+    private boolean checkIfCustomerIsSet ()
+    {
+        if (!loggedIn)
+        {
+            JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+            return false;
+        }
+        return true;
+    }
+
     private void handleNewAccount (String accountType)
     {
         accountType = accountType.toLowerCase(Locale.ROOT);
         if (accountType.equals("savings") || accountType.equals("saving"))
         {
-            if (!loggedIn)
-            {
-                JOptionPane.showMessageDialog(mainFrame, "Du måste sätta en kund först");
+            if (!checkIfCustomerIsSet())
                 return;
-            }
             int accountNumber = bankLogic.createSavingsAccount(getPersonlNumber());
             if (accountNumber > 0)
             {
@@ -750,14 +1083,17 @@ public class GUI
             public void actionPerformed (ActionEvent e)
             {
                 Date date = new Date();
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat formatter = new SimpleDateFormat(dateFormat);
                 String strDate = formatter.format(date);
 
                 // show timer in the center of footer
-
+                JLabel timerLabel = new JLabel(strDate);
+                // change timerLabel color to white
+                timerLabel.setForeground(Color.WHITE);
+                timerLabel.setFont(new Font("Arial", Font.BOLD, 20));
                 footerPanel.removeAll();
-                footerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-                footerPanel.add(new JLabel(strDate));
+                footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                footerPanel.add(timerLabel, BorderLayout.CENTER);
                 footerPanel.revalidate();
                 footerPanel.repaint();
                 footerPanel.setBackground(new Color(0, 153, 0));

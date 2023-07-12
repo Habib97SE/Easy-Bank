@@ -90,11 +90,25 @@ public class BankLogic
                 return false;
             name = name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
             surname = surname.substring(0, 1).toUpperCase() + surname.substring(1).toLowerCase();
+            pNo = pNo.replaceAll("-", "");
+            pNo = convertToTwelveDigits(pNo);
             Customer customer1 = new Customer(pNo, name, surname);
             allCustomers.add(customer1);
             return true;
         }
         return false;
+    }
+
+    public String convertToTwelveDigits (String pNo)
+    {
+        if (pNo.length() == 10)
+        {
+            if (pNo.startsWith("0"))
+                return "20" + pNo;
+
+            return "19" + pNo;
+        }
+        return pNo;
     }
 
     /**
@@ -285,6 +299,16 @@ public class BankLogic
         return null;
     }
 
+    /**
+     * Check if a personal number is valid or not. The following rules apply:
+     * <ul>
+     * <li> The personal number must be 10 or 12 digits long</li>
+     * <li> The personal number must contain only digits</li>
+     * </ul>
+     *
+     * @param pNo : personal number to be checked if valid or not
+     * @return : true if the personal number is valid, false otherwise
+     */
     public boolean isPersonalNumberValid (String pNo)
     {
         // check if the personal number is 10 or 12 digits long, if not return false
@@ -321,6 +345,7 @@ public class BankLogic
 
     public String getFullName (String pNo)
     {
+        pNo = convertToTwelveDigits(pNo);
         String customerName = "";
         if (!customerExists(pNo))
             return null;
