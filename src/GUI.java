@@ -2,78 +2,97 @@ import habhez0.BankLogic;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.net.URL;
+import java.awt.event.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
-
+import java.util.Objects;
 
 public class GUI
 {
-    private final int WIDTH = 800;
-    private final int HEIGHT = 600;
+    private final String FONT_NAME = "Arial";
+    private static final int FRAME_WIDTH = 800;
+    private static final int FRAME_HEIGHT = 600;
     private String personlNumber = "";
     private boolean loggedIn = false;
     private BankLogic bankLogic;
     private JFrame mainFrame;
-    private JPanel headerPanel;
-    private JPanel sidebarPanel;
-    private JPanel contentPanel;
-    private JPanel footerPanel;
+    private JPanel headerPanel = new JPanel();
+    private JPanel sidebarPanel = new JPanel();
+    private JPanel contentPanel = new JPanel();
+    private JPanel footerPanel = new JPanel();
     private JMenuBar menuBar;
     private String dateFormat;
 
-    public GUI (String programName, String dateFormat)
+    public GUI (String programName, String dateFormat, BankLogic bankLogic)
     {
         this.dateFormat = dateFormat;
-        this.bankLogic = new BankLogic();
+        this.bankLogic = bankLogic;
+
+        initializeFrame(programName);
+        initializePanels();
+        configureUI();
+        createMainView();
+        showMainFrame();
+    }
+
+    private void initializeFrame (String programName)
+    {
         mainFrame = new JFrame(programName);
         mainFrame.setLayout(new BorderLayout());
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        mainFrame.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-
+        mainFrame.setPreferredSize(new Dimension(FRAME_WIDTH, FRAME_HEIGHT));
+        mainFrame.setIconImage(new ImageIcon(Objects.requireNonNull(getClass().getResource("icon.jpg"))).getImage());
         mainFrame.setJMenuBar(createMenuBar());
-        mainFrame.setVisible(true);
+    }
 
-        headerPanel = new JPanel();
-        sidebarPanel = new JPanel();
-        contentPanel = new JPanel();
-        footerPanel = new JPanel();
-
-        createHeader("Välkommen", "This is a test");
-
-        headerPanel.setPreferredSize(new Dimension(WIDTH, 100));
-        sidebarPanel.setPreferredSize(new Dimension(200, HEIGHT - 100));
-        contentPanel.setPreferredSize(new Dimension(WIDTH - 200, HEIGHT - 100));
-        footerPanel.setPreferredSize(new Dimension(WIDTH, 100));
-
-        createSidebar();
-
-        footerPanel.setBackground(Color.white);
-        headerPanel.setBackground(Color.white);
-
-        // give sidebar margin from left
+    private void initializePanels ()
+    {
+        headerPanel = createPanel(Color.WHITE, new Dimension(FRAME_WIDTH, 100));
+        sidebarPanel = createPanel(Color.WHITE, new Dimension(200, FRAME_HEIGHT - 100));
+        contentPanel = createPanel(Color.WHITE, new Dimension(FRAME_WIDTH - 200, FRAME_HEIGHT - 100));
+        footerPanel = createPanel(Color.WHITE, new Dimension(FRAME_WIDTH, 100));
         sidebarPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
         contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+    }
 
+    private void configureUI ()
+    {
         mainFrame.add(headerPanel, BorderLayout.NORTH);
         mainFrame.add(sidebarPanel, BorderLayout.WEST);
         mainFrame.add(contentPanel, BorderLayout.CENTER);
         mainFrame.add(footerPanel, BorderLayout.SOUTH);
-
-        updateTimer();
-
-        mainFrame.setBackground(Color.white);
-
-
         mainFrame.pack();
         mainFrame.setLocationRelativeTo(null);
+        mainFrame.setVisible(true);
+    }
 
+    private JPanel createPanel (Color background, Dimension dimension)
+    {
+        JPanel panel = new JPanel();
+        panel.setBackground(background);
+        panel.setPreferredSize(dimension);
+        return panel;
+    }
+
+    private void showMainFrame ()
+    {
+        // Code for showing the main frame goes here
+        mainFrame.setVisible(true);
+    }
+
+    public void createMainView ()
+    {
+        mainFrame.setJMenuBar(createMenuBar());
+        cleanPanels();
+        createHeader("Välkommen", "Vänligen sätt en kund eller skapa en ny");
+        createMainViewSidebar();
+        createFooter();
+        mainFrame.pack();
     }
 
     public void cleanPanels ()
@@ -83,19 +102,14 @@ public class GUI
         sidebarPanel.removeAll();
         contentPanel.removeAll();
         footerPanel.removeAll();
-
-        // repaint panels
         headerPanel.revalidate();
         sidebarPanel.revalidate();
         contentPanel.revalidate();
         footerPanel.revalidate();
-
         headerPanel.repaint();
         sidebarPanel.repaint();
         contentPanel.repaint();
         footerPanel.repaint();
-
-
     }
 
 
@@ -192,7 +206,6 @@ public class GUI
                 }
             });
         }
-
         menu.add(setCustomer);
         menu.add(new JSeparator());
         menu.add(newCustomer);
@@ -210,10 +223,8 @@ public class GUI
             // re-render the menu bar
             personlNumber = "";
             loggedIn = false;
-            cleanPanels();
-            createHeader("Välkommen", "This is a test");
-            createSidebar();
-            mainFrame.setJMenuBar(createMenuBar());
+            createMainView();
+
         }
     }
 
@@ -223,11 +234,9 @@ public class GUI
         {
             JLabel personalNumberLabel = new JLabel("Personnummer: ");
             JTextField personalNumberField = new JTextField(20);
-
             JPanel panel = new JPanel(new BorderLayout());
             panel.add(personalNumberLabel, BorderLayout.WEST);
             panel.add(personalNumberField, BorderLayout.CENTER);
-
             JButton setCustomer = new JButton("Sätt kund");
             setCustomer.addActionListener(new ActionListener()
             {
@@ -247,54 +256,51 @@ public class GUI
                     }
                 }
             });
-
             cleanPanels();
             createHeader("Sätt kund", "Du kan sätta kund här");
             createSidebar();
             contentPanel.add(panel, BorderLayout.NORTH);
             contentPanel.add(setCustomer, BorderLayout.SOUTH);
-
             mainFrame.pack();
-
         }
     }
 
     private void handleShowCustomer ()
     {
         if (!checkIfCustomerIsSet())
+        {
             return;
-        System.out.printf("personal number: %s", getPersonlNumber());
+        }
+
         cleanPanels();
         createHeader("Visa kund", "Du kan visa kundens information här");
         createSidebar();
-        JPanel formPanel = new JPanel(new BorderLayout());
-        JLabel personalNumberLabel = new JLabel("Personnummer: " + getPersonlNumber());
-        JLabel firstNameLabel = new JLabel("Förnamn: " + bankLogic.getFullName(personlNumber).split(" ")[0]);
-        JLabel lastNameLabel = new JLabel("Efternamn: " + bankLogic.getFullName(personlNumber).split(" ")[1]);
 
-        personalNumberLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
-        firstNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
-        lastNameLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
 
-        GridBagLayout gridBagLayout = new GridBagLayout();
-        formPanel.setLayout(gridBagLayout);
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
         gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        formPanel.add(personalNumberLabel, gridBagConstraints);
-        gridBagConstraints.gridy = 1;
-        formPanel.add(firstNameLabel, gridBagConstraints);
-        gridBagConstraints.gridy = 2;
-        formPanel.add(lastNameLabel, gridBagConstraints);
+        gridBagConstraints.anchor = GridBagConstraints.WEST;
+        gridBagConstraints.insets = new Insets(0, 10, 20, 0);
+
+        // Create labels and add them to the form panel
+        addCustomerInfoLabel(formPanel, "Personnummer:", getPersonlNumber(), gridBagConstraints, 0);
+        addCustomerInfoLabel(formPanel, "Förnamn:", bankLogic.getFullName(personlNumber).split(" ")[0], gridBagConstraints, 1);
+        addCustomerInfoLabel(formPanel, "Efternamn:", bankLogic.getFullName(personlNumber).split(" ")[1], gridBagConstraints, 2);
 
         contentPanel.add(formPanel, BorderLayout.CENTER);
-        contentPanel.setBackground(Color.white);
-
         mainFrame.pack();
-
-
     }
+
+    private void addCustomerInfoLabel (JPanel panel, String labelText, String value, GridBagConstraints constraints, int gridY)
+    {
+        JLabel label = new JLabel(labelText + " " + value);
+        label.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 0));
+        constraints.gridy = gridY;
+        panel.add(label, constraints);
+    }
+
 
     private void handleDeleteCustomer ()
     {
@@ -313,10 +319,8 @@ public class GUI
             createSidebar();
             loggedIn = false;
             setPersonlNumber("");
-
             mainFrame.pack();
         }
-
     }
 
     private void handleEditCustomer ()
@@ -326,35 +330,27 @@ public class GUI
         cleanPanels();
         createHeader("Ändra kund", "Du kan ändra kundens namn här");
         createSidebar();
-
         JPanel formPanel = new JPanel(new BorderLayout());
-
         JLabel personalNumberLabel = new JLabel("Personnummer:");
         JLabel firstNameLabel = new JLabel("Förnamn:");
         JLabel lastNameLabel = new JLabel("Efternamn:");
-
         JTextField personalNumberTextfield = new JTextField(20);
         personalNumberTextfield.setText(personlNumber);
         personalNumberLabel.setEnabled(false);
-
         JTextField firstNameTextfield = new JTextField(20);
         JTextField lastNameTextfield = new JTextField(20);
-
         JPanel personalNumberPanel = new JPanel();
         personalNumberPanel.add(personalNumberLabel);
         personalNumberPanel.add(personalNumberTextfield);
         personalNumberPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
         JPanel firstNamePanel = new JPanel();
         firstNamePanel.add(firstNameLabel);
         firstNamePanel.add(firstNameTextfield);
         firstNamePanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
         JPanel lastNamePanel = new JPanel();
         lastNamePanel.add(lastNameLabel);
         lastNamePanel.add(lastNameTextfield);
         lastNamePanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
         JButton cancelButton = new JButton("Avbryt");
         cancelButton.addActionListener(new ActionListener()
         {
@@ -373,7 +369,6 @@ public class GUI
             {
                 String firstName = firstNameTextfield.getText();
                 String lastName = lastNameTextfield.getText();
-
                 boolean result = bankLogic.changeCustomerName(firstName, lastName, personalNumberTextfield.getText());
                 if (result)
                 {
@@ -390,7 +385,6 @@ public class GUI
         buttonPanel.add(cancelButton);
         buttonPanel.add(submitButton);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
         GridBagLayout gridBagLayout = new GridBagLayout();
         formPanel.setLayout(gridBagLayout);
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
@@ -413,27 +407,17 @@ public class GUI
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 2;
         formPanel.add(lastNameTextfield, gridBagConstraints);
-
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         formPanel.add(buttonPanel, gridBagConstraints);
-
-
         contentPanel.add(formPanel, BorderLayout.CENTER);
-
-
         // add the form and submit button to the mainframe
         mainFrame.pack();
     }
 
     private void handleCancel ()
     {
-        cleanPanels();
-        createHeader("Välkommen", "Välkommen till banken");
-        createSidebar();
-        mainFrame.revalidate();
-        mainFrame.repaint();
-        mainFrame.pack();
+        createMainView();
     }
 
     private String getInputPopup (String message)
@@ -461,7 +445,6 @@ public class GUI
         return personlNumber;
     }
 
-
     private boolean isCustomerSet ()
     {
         return personlNumber != null || personlNumber.equals("");
@@ -471,18 +454,14 @@ public class GUI
     {
         sidebarPanel.removeAll();
         JLabel sideBarTitle = new JLabel("Funktioner:");
-
         sideBarTitle.setHorizontalAlignment(JLabel.CENTER);
         sideBarTitle.setPreferredSize(new Dimension(sidebarPanel.getWidth(), 50));
         sidebarPanel.add(sideBarTitle);
-
-        // this sidebar is a menu in vertical orientation
         JButton withdrawButton = new JButton("Ta ut pengar");
         JButton depositButton = new JButton("Sätt in pengar");
         JButton showBalanceButton = new JButton("Visa saldo");
         JButton showTransactionsButton = new JButton("Visa transaktioner");
         JButton transferButton = new JButton("Överföring");
-
         withdrawButton.addActionListener(new ActionListener()
         {
             @Override
@@ -509,7 +488,6 @@ public class GUI
                 handleShowBalance();
             }
         });
-
         showTransactionsButton.addActionListener(new ActionListener()
         {
             @Override
@@ -518,23 +496,17 @@ public class GUI
                 handleShowTransactions();
             }
         });
-
-        // add all buttons to sidebar
         sidebarPanel.add(withdrawButton);
         sidebarPanel.add(depositButton);
         sidebarPanel.add(showBalanceButton);
         sidebarPanel.add(showTransactionsButton);
         sidebarPanel.add(transferButton);
-
-        // set the buttons width to the same as the sidebar - 15px
         Dimension buttonDimension = new Dimension(sidebarPanel.getWidth() - 15, 50);
         withdrawButton.setPreferredSize(buttonDimension);
         depositButton.setPreferredSize(buttonDimension);
         showBalanceButton.setPreferredSize(buttonDimension);
         showTransactionsButton.setPreferredSize(buttonDimension);
         transferButton.setPreferredSize(buttonDimension);
-
-        // add sidebar to mainframe
         mainFrame.add(sidebarPanel, BorderLayout.WEST);
         mainFrame.pack();
     }
@@ -546,7 +518,6 @@ public class GUI
         cleanPanels();
         createHeader("Visa transaktioner", "Visa transaktioner för ett konto");
         createSidebar();
-
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new BorderLayout());
         JLabel selectAccount = new JLabel("Välj konto:");
@@ -556,7 +527,6 @@ public class GUI
         {
             accountList.addItem(account);
         }
-
         JButton submitButton = new JButton("Visa transaktioner");
         submitButton.addActionListener(new ActionListener()
         {
@@ -566,9 +536,38 @@ public class GUI
                 String accountNumber = (String) accountList.getSelectedItem();
                 ArrayList<String> transactions = bankLogic.getTransactions(getPersonlNumber(),
                         Integer.parseInt(accountNumber));
-
+                if (transactions == null)
+                {
+                    JOptionPane.showMessageDialog(mainFrame, "Kunde inte hitta några transaktioner");
+                    return;
+                }
+                contentPanel.removeAll();
+                // show transactions in a table
+                String[] columnNames = {"Datum", "Belopp", "Saldo"};
+                String[][] data = new String[transactions.size()][4];
+                for (int i = 0; i < transactions.size(); i++)
+                {
+                    // transaction pattern: date amount Saldo: balance
+                    String transaction = transactions.get(i);
+                    data[i][0] = transaction.split(" ")[0];
+                    data[i][1] = transaction.split(" ")[1];
+                    // remove saldo: from the string and return the last element after split(" ")
+                    data[i][2] = transaction.substring(transaction.indexOf("Saldo:") + 6).split(" ")[0];
+                }
+                JTable table = new JTable(data, columnNames);
+                JScrollPane scrollPane = new JScrollPane(table);
+                table.setFillsViewportHeight(true);
+                table.setEnabled(false);
+                formPanel.add(scrollPane, BorderLayout.CENTER);
+                contentPanel.add(formPanel, BorderLayout.CENTER);
+                mainFrame.pack();
             }
         });
+        formPanel.add(selectAccount, BorderLayout.NORTH);
+        formPanel.add(accountList, BorderLayout.CENTER);
+        formPanel.add(submitButton, BorderLayout.SOUTH);
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        mainFrame.pack();
     }
 
     private void handleShowBalance ()
@@ -578,7 +577,6 @@ public class GUI
         cleanPanels();
         createHeader("Visa saldo", "Visa saldo för ett konto");
         createSidebar();
-
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new GridLayout(2, 1));
         JPanel accountNumberPanel = new JPanel();
@@ -587,9 +585,6 @@ public class GUI
         JLabel balanceLabel = new JLabel("Saldo:");
         JTextField accountNumberTextfield = new JTextField();
         JTextField balanceTextfield = new JTextField();
-
-
-
         accountNumberTextfield.setEditable(false);
         balanceTextfield.setEditable(false);
         accountNumberPanel.add(accountNumberLabel);
@@ -600,7 +595,6 @@ public class GUI
         formPanel.add(balancePanel);
         contentPanel.add(formPanel, BorderLayout.CENTER);
         mainFrame.pack();
-
     }
 
     public int selectAccountNumber ()
@@ -619,7 +613,7 @@ public class GUI
         int option = JOptionPane.showOptionDialog(null, panel, "Välj konto",
                 JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
                 null, options, options[1]);
-        if (option == 0) // pressing OK button
+        if (option == 0)
         {
             return Integer.parseInt(comboBox.getSelectedItem().toString());
         }
@@ -630,11 +624,9 @@ public class GUI
     {
         if (!checkIfCustomerIsSet())
             return;
-
         cleanPanels();
         createHeader("Sätt in pengar", "Fyll i uppgifterna nedan");
         createSidebar();
-
         JPanel formPanel = new JPanel();
         JLabel selectAccount = new JLabel("Välj ett konto från lista: ");
         JComboBox accountList = new JComboBox();
@@ -682,7 +674,6 @@ public class GUI
                     }
                 });
                 contentPanel.add(formPanel);
-
                 mainFrame.pack();
             }
         });
@@ -693,82 +684,148 @@ public class GUI
     private void handleWithdraw ()
     {
         if (!checkIfCustomerIsSet())
+        {
             return;
+        }
+
         cleanPanels();
         createHeader("Ta ut pengar", "Fyll i uppgifterna nedan");
         createSidebar();
+        JPanel formPanel = createWithdrawFormPanel();
 
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        mainFrame.pack();
+    }
+
+    private JPanel createWithdrawFormPanel ()
+    {
         JPanel formPanel = new JPanel(new BorderLayout());
 
-        JLabel selectAccount = new JLabel("Välj ett konto från lista: ");
-        JComboBox accountList = new JComboBox();
-        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
-        for (String account : accounts)
-        {
-            accountList.addItem(bankLogic.extractAccountNumber(account));
-        }
-
-        JPanel selectAccountPanel = new JPanel();
-        selectAccountPanel.add(selectAccount);
-        selectAccountPanel.add(accountList);
-
-        int accountNumber = Integer.parseInt(accountList.getSelectedItem().toString());
-
-        JLabel amountLabel = new JLabel("Belopp:");
-        JTextField amountTextfield = new JTextField(20);
-        JPanel amountPanel = new JPanel();
-        amountPanel.add(amountLabel);
-        amountPanel.add(amountTextfield);
-
-        JButton cancelButton = new JButton("Avbryt");
-        cancelButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed (ActionEvent e)
-            {
-                handleCancel();
-            }
-        });
-
-        JButton submitButton = new JButton("Ta ut");
-        submitButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed (ActionEvent e)
-            {
-                try
-                {
-                    boolean result = bankLogic.withdraw(getPersonlNumber(), accountNumber,
-                            Integer.parseInt(amountTextfield.getText()));
-                    if (result)
-                    {
-                        JOptionPane.showMessageDialog(mainFrame, "Uttaget lyckades!", "Uttag", JOptionPane.INFORMATION_MESSAGE);
-                        handleCancel();
-                    } else
-                    {
-                        JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
-                    }
-                } catch (Exception ex)
-                {
-                    JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(cancelButton);
-        buttonPanel.add(submitButton);
+        JPanel selectAccountPanel = createSelectAccountPanel();
+        JPanel amountPanel = createAmountPanel();
+        JPanel buttonPanel = createWithdrawButtonPanel();
 
         formPanel.add(selectAccountPanel, BorderLayout.NORTH);
         formPanel.add(amountPanel, BorderLayout.CENTER);
         formPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        contentPanel.add(formPanel, BorderLayout.CENTER);
-
-        mainFrame.pack();
-
-
+        return formPanel;
     }
+
+    private JPanel createSelectAccountPanel ()
+    {
+        JLabel selectAccountLabel = new JLabel("Välj ett konto från listan: ");
+        JComboBox<Integer> accountListComboBox = createAccountListComboBox();
+        JPanel selectAccountPanel = new JPanel();
+        selectAccountPanel.add(selectAccountLabel);
+        selectAccountPanel.add(accountListComboBox);
+
+        return selectAccountPanel;
+    }
+
+    private JComboBox<Integer> createAccountListComboBox ()
+    {
+        JComboBox<Integer> accountListComboBox = new JComboBox<>();
+        ArrayList<String> accounts = bankLogic.getCustomerAccounts(personlNumber);
+        for (String account : accounts)
+        {
+            int accountNumber = bankLogic.extractAccountNumber(account);
+            accountListComboBox.addItem(accountNumber);
+        }
+
+        return accountListComboBox;
+    }
+
+    private JPanel createAmountPanel ()
+    {
+        JLabel amountLabel = new JLabel("Belopp:");
+        JTextField amountTextField = new JTextField(20);
+        JPanel amountPanel = new JPanel();
+        amountPanel.add(amountLabel);
+        amountPanel.add(amountTextField);
+
+        return amountPanel;
+    }
+
+    private JPanel createWithdrawButtonPanel ()
+    {
+        JButton cancelButton = new JButton("Avbryt");
+        cancelButton.addActionListener(e -> handleCancel());
+
+        JButton submitButton = new JButton("Ta ut");
+        submitButton.addActionListener(e -> performWithdraw());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(submitButton);
+
+        return buttonPanel;
+    }
+
+    private void performWithdraw ()
+    {
+        int accountNumber = getSelectedAccountNumber();
+        int amount = parseWithdrawAmount();
+        try
+        {
+            boolean result = bankLogic.withdraw(getPersonlNumber(), accountNumber, amount);
+            if (result)
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Uttaget lyckades!", "Uttag", JOptionPane.INFORMATION_MESSAGE);
+                handleCancel();
+            } else
+            {
+                JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex)
+        {
+            JOptionPane.showMessageDialog(mainFrame, "Uttaget misslyckades!", "Uttag", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private int getSelectedAccountNumber ()
+    {
+        JComboBox<Integer> accountListComboBox = getAccountListComboBox();
+        return (int) accountListComboBox.getSelectedItem();
+    }
+
+    private int parseWithdrawAmount ()
+    {
+        JTextField amountTextField = getAmountTextField();
+        String amountText = amountTextField.getText();
+        try
+        {
+            return Integer.parseInt(amountText);
+        } catch (NumberFormatException e)
+        {
+            return 0;
+        }
+    }
+
+// Utility methods to access components
+
+    private JComboBox<Integer> getAccountListComboBox ()
+    {
+        return (JComboBox<Integer>) findComponentByName("accountListComboBox");
+    }
+
+    private JTextField getAmountTextField ()
+    {
+        return (JTextField) findComponentByName("amountTextField");
+    }
+
+    private Component findComponentByName (String name)
+    {
+        for (Component component : contentPanel.getComponents())
+        {
+            if (name.equals(component.getName()))
+            {
+                return component;
+            }
+        }
+        return null;
+    }
+
 
     private void handleNewCustomer ()
     {
@@ -776,134 +833,132 @@ public class GUI
         createHeader("Ny kund", "Fyll i uppgifterna nedan");
         createSidebar();
 
-        // create the form
-        JPanel formPanel = new JPanel(new BorderLayout());
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+
+        GridBagConstraints gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = GridBagConstraints.WEST;
+        gridBagConstraints.insets = new Insets(10, 0, 0, 0);
 
         JLabel personalNumberLabel = new JLabel("Personnummer:");
-        JLabel firstNameLabel = new JLabel("Förnamn:");
-        JLabel lastNameLabel = new JLabel("Efternamn:");
-
         JTextField personalNumberTextfield = new JTextField(20);
+
+        JLabel firstNameLabel = new JLabel("Förnamn:");
         JTextField firstNameTextfield = new JTextField(20);
+
+        JLabel lastNameLabel = new JLabel("Efternamn:");
         JTextField lastNameTextfield = new JTextField(20);
 
-        JPanel personalNumber = new JPanel();
-        personalNumber.add(personalNumberLabel);
-        personalNumber.add(personalNumberTextfield);
-        personalNumber.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        JPanel firstName = new JPanel();
-        firstName.add(firstNameLabel);
-        firstName.add(firstNameTextfield);
-        firstName.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        JPanel lastName = new JPanel();
-        lastName.add(lastNameLabel);
-        lastName.add(lastNameTextfield);
-        lastName.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-
-        // create the submit button
         JButton submitButton = new JButton("Skapa kund");
-        submitButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed (ActionEvent e)
-            {
-                String personalNumberStr = bankLogic.convertToTwelveDigits(personalNumberTextfield.getText());
-                String firstName = firstNameTextfield.getText();
-                String lastName = lastNameTextfield.getText();
-
-                if (!bankLogic.isPersonalNumberValid(personalNumberStr))
-                {
-                    JOptionPane.showMessageDialog(mainFrame, "Personnumret är inte giltigt");
-                    return;
-                }
-
-                if (personalNumberStr.isEmpty() || firstName.isEmpty() || lastName.isEmpty())
-                {
-                    JOptionPane.showMessageDialog(mainFrame, "Du måste fylla i alla fält");
-                    return;
-                }
-                try
-                {
-                    if (bankLogic.customerExists(personalNumberStr))
-                    {
-                        JOptionPane.showMessageDialog(mainFrame, "Kunden finns redan");
-                        return;
-                    } else
-                    {
-                        boolean result = bankLogic.createCustomer(firstName, lastName, personalNumberStr);
-
-                        if (result)
-                        {
-                            loggedIn = true;
-                            setPersonlNumber(personalNumberStr);
-                            JOptionPane.showMessageDialog(mainFrame, "Kunden skapades");
-                            cleanPanels();
-                            createHeader("Välkommen", "Välkommen till banken");
-                            createSidebar();
-                            mainFrame.setJMenuBar(createMenuBar());
-                            mainFrame.revalidate();
-                            mainFrame.repaint();
-                            mainFrame.pack();
-                        } else
-                        {
-                            JOptionPane.showMessageDialog(mainFrame, "Kunden kunde inte skapas");
-                        }
-
-                    }
-                } catch (Exception ex)
-                {
-                    JOptionPane.showMessageDialog(mainFrame, ex.getMessage());
-                }
-            }
-        });
-
         JButton cancelButton = new JButton("Avbryt");
-        cancelButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed (ActionEvent e)
-            {
-                handleCancel();
-            }
-        });
+
+        submitButton.addActionListener(e -> handleNewCustomerAction(firstNameTextfield, lastNameTextfield, personalNumberTextfield));
+        cancelButton.addActionListener(e -> handleCancel());
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(cancelButton);
         buttonPanel.add(submitButton);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        GridBagLayout gridBagLayout = new GridBagLayout();
-        formPanel.setLayout(gridBagLayout);
-        GridBagConstraints gridBagConstraints = new GridBagConstraints();
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        formPanel.add(personalNumberLabel, gridBagConstraints);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        formPanel.add(personalNumberTextfield, gridBagConstraints);
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        formPanel.add(firstNameLabel, gridBagConstraints);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        formPanel.add(firstNameTextfield, gridBagConstraints);
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        formPanel.add(lastNameLabel, gridBagConstraints);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        formPanel.add(lastNameTextfield, gridBagConstraints);
+        addFormField(formPanel, personalNumberLabel, personalNumberTextfield, gridBagConstraints, 0);
+        addFormField(formPanel, firstNameLabel, firstNameTextfield, gridBagConstraints, 1);
+        addFormField(formPanel, lastNameLabel, lastNameTextfield, gridBagConstraints, 2);
+        addFormField(formPanel, buttonPanel, gridBagConstraints, 3);
 
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
-        formPanel.add(buttonPanel, gridBagConstraints);
         contentPanel.add(formPanel, BorderLayout.CENTER);
-        // add the form and submit button to the mainframe
         mainFrame.pack();
+    }
+
+    private void addFormField (JPanel panel, JLabel label, JTextField textField, GridBagConstraints constraints, int gridY)
+    {
+        constraints.gridx = 0;
+        constraints.gridy = gridY;
+        panel.add(label, constraints);
+
+        constraints.gridx = 1;
+        constraints.gridy = gridY;
+        panel.add(textField, constraints);
+    }
+
+    private void addFormField (JPanel panel, JPanel component, GridBagConstraints constraints, int gridY)
+    {
+        constraints.gridwidth = 2;
+        constraints.gridx = 0;
+        constraints.gridy = gridY;
+        panel.add(component, constraints);
+    }
+
+    private void handleNewCustomerAction (JTextField firstNameTextfield, JTextField lastNameTextfield,
+                                          JTextField personalNumberTextfield)
+    {
+        if (isNewCustomerDataValid(firstNameTextfield, lastNameTextfield, personalNumberTextfield))
+        {
+            String firstName = firstNameTextfield.getText();
+            String lastName = lastNameTextfield.getText();
+            String personalNumber = personalNumberTextfield.getText();
+            boolean result = bankLogic.createCustomer(firstName, lastName, personalNumber);
+            if (result)
+            {
+                JOptionPane.showMessageDialog(null, "Kunden skapades");
+                loggedIn = true;
+                setPersonlNumber(personalNumber);
+                menuBar = createMenuBar();
+                mainFrame.setJMenuBar(menuBar);
+                handleCancel();
+            } else
+            {
+                JOptionPane.showMessageDialog(null, "Kunden kunde inte skapas");
+                return;
+            }
+        } else
+        {
+            JOptionPane.showMessageDialog(null, "Felaktiga uppgifter");
+            return;
+        }
+    }
+
+    private boolean isNewCustomerDataValid (JTextField firstNameTextfield, JTextField lastNameTextfield,
+                                            JTextField personalNumberTextfield)
+    {
+        String firstName = firstNameTextfield.getText();
+        String lastName = lastNameTextfield.getText();
+        String personalNumber = personalNumberTextfield.getText();
+        return isNameValid(firstName) && isNameValid(lastName) && isPersonalNumberValid(personalNumber);
+    }
+
+    /**
+     * Check if a give name is valid or not. The valid name has to pass the following conditions:
+     * <ol>
+     *     <li> Has a minimum length of 2 chars</li>
+     *     <li> Contains only letters, spaces, hyphens and apostrophes</li>
+     * </ol>
+     *
+     * @param name The name to be checked for validity
+     * @return true if the name is valid, false otherwise
+     */
+    private boolean isNameValid (String name)
+    {
+        String regex = "[a-zA-Z- ']+";
+        return name.matches(regex) && name.length() > 2;
+    }
+
+    /**
+     * Check if a given personal number is valid or not. The valid personal number has to pass the following conditions:
+     * <ol>
+     *     <li> Has a length of 10 or 12 chars</li>
+     *     <li> Contains only digits</li>
+     *     <li> If the length is 12, the first 2 chars are 19 or 20</li>
+     * </ol>
+     *
+     * @param personalNumber The personal number to be checked for validity
+     * @return true if the personal number is valid, false otherwise
+     */
+    private boolean isPersonalNumberValid (String personalNumber)
+    {
+        String regex = "\\d+";
+        return personalNumber.matches(regex) && (personalNumber.length() == 10 || personalNumber.length() == 12) &&
+                (personalNumber.length() == 10 || personalNumber.substring(0, 2).equals("19") || personalNumber.substring(0, 2).equals("20"));
     }
 
     public JMenu createAccountMenu ()
@@ -948,59 +1003,88 @@ public class GUI
         return menu;
     }
 
+
     private void handleCloseAccount ()
     {
-        if (checkIfCustomerIsSet())
-            return;
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BorderLayout());
-        ArrayList<String> accounts = bankLogic.getCustomerAccounts(getPersonlNumber());
-        if (accounts.size() == 0)
+        if (checkIfCustomerIsNotSet())
         {
-            formPanel.add(new JLabel("Det finns inga konton"));
-            return;
-        }
-        // create the combobox
-        JComboBox<String> accountCombobox = new JComboBox<String>();
-        for (String account : accounts)
-        {
-            accountCombobox.addItem(Integer.toString(bankLogic.extractAccountNumber(account)));
-        }
-        JLabel chooseAccount = new JLabel("Välj konto:");
-        formPanel.add(chooseAccount, BorderLayout.NORTH);
-        formPanel.add(accountCombobox, BorderLayout.CENTER);
-        JButton submitButton = new JButton("Stäng konto");
-        submitButton.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed (ActionEvent e)
+            JPanel formPanel = new JPanel(new BorderLayout());
+            ArrayList<String> accounts = bankLogic.getCustomerAccounts(getPersonlNumber());
+
+            if (accounts.isEmpty())
             {
-                String accountNumber = (String) accountCombobox.getSelectedItem();
-                String result = bankLogic.closeAccount(getPersonlNumber(), Integer.parseInt(accountNumber));
-                if (result != null)
-                {
-                    String text = String.format("Kontot stängdes. Här är sammanfattningen:\n%s", result);
-                    JLabel accountInfo = new JLabel();
-                    accountInfo.setText(text);
-                    formPanel.add(accountInfo, BorderLayout.SOUTH);
-                } else
-                {
-                    JLabel warning = new JLabel("Kontot kunde inte stängas");
-                    warning.setForeground(Color.RED);
-                    formPanel.add(warning, BorderLayout.SOUTH);
-                }
+                formPanel.add(new JLabel("Det finns inga konton"));
+            } else
+            {
+                JLabel chooseAccount = new JLabel("Välj konto:");
+                JComboBox<String> accountCombobox = new JComboBox<>(accounts.toArray(new String[0]));
+                JButton submitButton = new JButton("Stäng konto");
+
+                submitButton.addActionListener(e -> closeAccount(accountCombobox));
+
+                formPanel.add(chooseAccount, BorderLayout.NORTH);
+                formPanel.add(accountCombobox, BorderLayout.CENTER);
+                formPanel.add(submitButton, BorderLayout.SOUTH);
             }
-        });
 
-        formPanel.add(submitButton, BorderLayout.SOUTH);
-        contentPanel.removeAll();
-        contentPanel.add(formPanel, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+            contentPanel.removeAll();
+            contentPanel.add(formPanel, BorderLayout.CENTER);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+            mainFrame.pack();
+        }
+    }
 
+    /**
+     * Check if a customer is set or not. If not, display an error message
+     *
+     * @return true if a customer is not set, false otherwise
+     */
+    private boolean checkIfCustomerIsNotSet ()
+    {
+        if (getPersonlNumber() == null)
+        {
+            JOptionPane.showMessageDialog(mainFrame, "Du måste välja en kund först!", "Fel", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Close the account with the given account number and display the result in the form panel
+     *
+     * @param accountCombobox The combobox containing the account number
+     */
+    private void closeAccount (JComboBox<String> accountCombobox)
+    {
+        String accountNumber = (String) accountCombobox.getSelectedItem();
+        int accountNumberInt = Integer.parseInt(accountNumber);
+        String result = bankLogic.closeAccount(getPersonlNumber(), accountNumberInt);
+
+        JPanel formPanel = (JPanel) accountCombobox.getParent();
+        formPanel.removeAll();
+
+        if (result != null)
+        {
+            String text = String.format("Kontot stängdes. Här är sammanfattningen:\n%s", result);
+            JLabel accountInfo = new JLabel(text);
+            formPanel.add(accountInfo, BorderLayout.SOUTH);
+        } else
+        {
+            JLabel warning = new JLabel("Kontot kunde inte stängas");
+            warning.setForeground(Color.RED);
+            formPanel.add(warning, BorderLayout.SOUTH);
+        }
+
+        formPanel.revalidate();
+        formPanel.repaint();
         mainFrame.pack();
     }
 
+    /**
+     * Handles the action of creating a new account. It shows a form to the user to enter the account details
+     *
+     */
     private void handleShowAccount ()
     {
         if (!checkIfCustomerIsSet())
@@ -1021,10 +1105,14 @@ public class GUI
         contentPanel.add(formPanel, BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
-
         mainFrame.pack();
     }
 
+    /**
+     * Checks if a customer is set, it checks whether the personal number is set or not
+     *
+     * @return true if a customer is set, false otherwise
+     */
     private boolean checkIfCustomerIsSet ()
     {
         if (!loggedIn)
@@ -1035,6 +1123,11 @@ public class GUI
         return true;
     }
 
+    /**
+     * Handles the creation of a new account
+     *
+     * @param accountType The type of account to be created
+     */
     private void handleNewAccount (String accountType)
     {
         accountType = accountType.toLowerCase(Locale.ROOT);
@@ -1074,9 +1167,11 @@ public class GUI
      * The time format is: YYYY-MM-DD HH:MM:SS e.g. 2019-01-01 12:00:00
      * The timer will be updated every second.
      */
-    public void updateTimer ()
+    public JPanel updateTimer ()
     {
-        // update the timer every second for the footer
+        JPanel timerPanel = new JPanel();
+        // transparent background
+        timerPanel.setOpaque(false);
         Timer timer = new Timer(1000, new ActionListener()
         {
             @Override
@@ -1085,26 +1180,19 @@ public class GUI
                 Date date = new Date();
                 SimpleDateFormat formatter = new SimpleDateFormat(dateFormat);
                 String strDate = formatter.format(date);
-
-                // show timer in the center of footer
                 JLabel timerLabel = new JLabel(strDate);
-                // change timerLabel color to white
                 timerLabel.setForeground(Color.WHITE);
-                timerLabel.setFont(new Font("Arial", Font.BOLD, 20));
-                footerPanel.removeAll();
-                footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-                footerPanel.add(timerLabel, BorderLayout.CENTER);
-                footerPanel.revalidate();
-                footerPanel.repaint();
-                footerPanel.setBackground(new Color(0, 153, 0));
+                timerLabel.setFont(new Font(FONT_NAME, Font.BOLD, 20));
+                timerPanel.removeAll();
+                timerPanel.add(timerLabel);
+                timerPanel.revalidate();
+                timerPanel.repaint();
+
             }
         });
         timer.start();
-
-        mainFrame.add(footerPanel, BorderLayout.SOUTH);
-        mainFrame.pack();
+        return timerPanel;
     }
-
 
     /**
      * Create the right side of the header which shows the customer data (name).
@@ -1118,7 +1206,6 @@ public class GUI
         customerData.setLayout(new BorderLayout());
         customerData.setBackground(Color.WHITE);
         customerData.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
         JLabel customer = new JLabel();
         if (loggedIn)
         {
@@ -1130,9 +1217,7 @@ public class GUI
             customer.setText("Kund: ");
             customerData.add(unknownCustomerLabel, BorderLayout.CENTER);
         }
-
         customerData.add(customer, BorderLayout.WEST);
-
         return customerData;
     }
 
@@ -1145,13 +1230,10 @@ public class GUI
      */
     private JPanel createWelcomeMessageHeader (String title, String description)
     {
-
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-
+        titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 20));
         JLabel descriptionLabel = new JLabel(description);
-        descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-
+        descriptionLabel.setFont(new Font(FONT_NAME, Font.PLAIN, 12));
         JPanel welcomeMessagePanel = new JPanel();
         welcomeMessagePanel.setLayout(new BorderLayout());
         welcomeMessagePanel.add(titleLabel, BorderLayout.NORTH);
@@ -1159,7 +1241,6 @@ public class GUI
         welcomeMessagePanel.setBackground(Color.WHITE);
         welcomeMessagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         return welcomeMessagePanel;
-
     }
 
     /**
@@ -1174,7 +1255,10 @@ public class GUI
         headerPanel.removeAll();
         headerPanel.setLayout(new BorderLayout());
         headerPanel.add(createWelcomeMessageHeader(mainTitle, shortDescription), BorderLayout.WEST);
+        Icon icon = new ImageIcon(getClass().getResource("header.png"));
+        JLabel headerImage = new JLabel(icon);
         headerPanel.add(createCustomerData(), BorderLayout.EAST);
+        headerPanel.add(headerImage, BorderLayout.CENTER);
         mainFrame.add(headerPanel, BorderLayout.NORTH);
         mainFrame.pack();
     }
@@ -1186,4 +1270,83 @@ public class GUI
         headerPanel.add(createWelcomeMessageHeader(title, description), BorderLayout.WEST);
         headerPanel.add(createCustomerData(), BorderLayout.EAST);
     }
+
+    /**
+     * Create the sidebar for main view (first page) which includes some useful links to different web pages and/or
+     * apps e.g. Outlook, Teams, OneDrive, etc.
+     * The content area contains the different views of the application.
+     */
+    private void createMainViewSidebar ()
+    {
+        // TODO: Create the sidebar for main view
+    }
+
+    private JPanel createFooterNav ()
+    {
+        JPanel nav = new JPanel();
+        nav.setName("footerNav");
+        nav.setLayout(new BoxLayout(nav, BoxLayout.Y_AXIS));
+        nav.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // set transparent nav panel
+        nav.setOpaque(false);
+        JLabel[] labels = new JLabel[4];
+        String[] linkNames = {"Outlook", "Teams", "OneDrive", "Bankens nyheter"};
+        String[] links = {"https://outlook.office.com/mail/inbox", "https://teams.microsoft.com/", "https://onedrive.live.com/about/sv-se/signin/", "https://www.test.test"};
+
+        for (int i = 0; i < links.length; i++)
+        {
+            JLabel label = new JLabel(linkNames[i]);
+            label.setForeground(Color.BLUE);
+            label.setFont(new Font(FONT_NAME, Font.PLAIN, 12));
+            label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            label.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+            labels[i] = label;
+            labels[i].setForeground(Color.BLUE);
+            labels[i].setFont(new Font(FONT_NAME, Font.PLAIN, 12));
+            labels[i].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            int finalI = i;
+            labels[i].addMouseListener(new MouseAdapter()
+            {
+                @Override
+                public void mouseClicked (MouseEvent e)
+                {
+                    try
+                    {
+                        Desktop.getDesktop().browse(new URI(links[finalI]));
+                    } catch (IOException | URISyntaxException e1)
+                    {
+                        e1.printStackTrace();
+                    }
+                }
+            });
+            nav.add(labels[i]);
+        }
+        return nav;
+    }
+
+
+    private void createFooter ()
+    {
+        // Create footer navigation
+        JPanel footerNav = createFooterNav();
+        footerNav.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+
+        // Create timer panel
+        JPanel timer = updateTimer();
+
+        // Set layout manager for footerPanel
+        footerPanel.setLayout(new BorderLayout());
+        footerPanel.setBackground(new Color(0, 153, 0));
+
+        // Add footerNav to the west side of footerPanel
+        footerPanel.add(footerNav, BorderLayout.WEST);
+
+        // Add timer to the east side of footerPanel
+        footerPanel.add(timer, BorderLayout.CENTER);
+
+        // Add footerPanel to the mainFrame
+        mainFrame.add(footerPanel, BorderLayout.SOUTH);
+        mainFrame.pack();
+    }
+
 }

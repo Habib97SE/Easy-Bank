@@ -208,7 +208,7 @@ public class BankLogic
      *
      * @param pNo       : personal number of the customer
      * @param accountId : account id of the account
-     * @return : an arraylist of all transactions for that account
+     * @return : an arraylist of all transactions for that account. If there is no transaction, returns null
      */
     public ArrayList<String> getTransactions (String pNo, int accountId)
     {
