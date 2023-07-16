@@ -90,7 +90,7 @@ public class GUI
         mainFrame.setJMenuBar(createMenuBar());
         cleanPanels();
         createHeader("Välkommen", "Vänligen sätt en kund eller skapa en ny");
-        createMainViewSidebar();
+        createSidebar();
         createFooter();
         mainFrame.pack();
     }
@@ -450,7 +450,7 @@ public class GUI
         return personlNumber != null || personlNumber.equals("");
     }
 
-    private void createSidebar ()
+    private void createLoggedInSidebar ()
     {
         sidebarPanel.removeAll();
         JLabel sideBarTitle = new JLabel("Funktioner:");
@@ -568,6 +568,15 @@ public class GUI
         formPanel.add(submitButton, BorderLayout.SOUTH);
         contentPanel.add(formPanel, BorderLayout.CENTER);
         mainFrame.pack();
+    }
+
+
+    private void createSidebar ()
+    {
+        if (loggedIn)
+            createLoggedInSidebar();
+        else
+            createMainViewSidebar();
     }
 
     private void handleShowBalance ()
@@ -1083,7 +1092,6 @@ public class GUI
 
     /**
      * Handles the action of creating a new account. It shows a form to the user to enter the account details
-     *
      */
     private void handleShowAccount ()
     {
@@ -1278,7 +1286,13 @@ public class GUI
      */
     private void createMainViewSidebar ()
     {
-        // TODO: Create the sidebar for main view
+        // create a label and put it into the sidebarPanel and rerender the frame
+        JLabel newLabel = new JLabel("Sidebar");
+        sidebarPanel.add(newLabel);
+        mainFrame.revalidate();
+        mainFrame.repaint();
+        mainFrame.pack();
+
     }
 
     private JPanel createFooterNav ()
